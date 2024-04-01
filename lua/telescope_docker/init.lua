@@ -23,6 +23,7 @@ local M = {}
 M._make_docker_command = function(args)
 	local job_opts = {
 		command = "docker",
+		cwd = getcwd(),
 		args = vim.tbl_flatten({ args, "--format", "json" }),
 	}
 	log.info("Running job", job_opts)
