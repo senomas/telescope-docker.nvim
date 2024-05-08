@@ -20,15 +20,27 @@ local M = {}
 
 ---@param args string[]
 ---@return string[]
+M._make_command = function(args)
+	local job_opts = {
+		command = "sh",
+		args = vim.tbl_flatten({ "-c", args }),
+	}
+	log.debug("Running job", job_opts)
+	vim.notify(vim.inspect(job_opts))
+	local job = plenary.job:new(job_opts):sync()
+	log.debug("Ran job", vim.inspect(job))
+	return job
+end
+
 M._make_docker_command = function(args)
 	local job_opts = {
 		command = "docker",
-		cwd = vim.loop.cwd(),
 		args = vim.tbl_flatten({ args, "--format", "json" }),
 	}
-	log.info("Running job", job_opts)
+	log.debug("Running job", job_opts)
+	vim.notify(vim.inspect(job_opts))
 	local job = plenary.job:new(job_opts):sync()
-	log.info("Ran job", vim.inspect(job))
+	log.debug("Ran job", vim.inspect(job))
 	return job
 end
 
@@ -41,9 +53,9 @@ M.docker_ps = function(opts)
 				end,
 
 				entry_maker = function(entry)
-					log.info("Got entry", entry)
+					log.debug("Got entry", entry)
 					local process = vim.json.decode(entry)
-					log.info("Got entry", process)
+					log.debug("Got entry", process)
 					if process then
 						return {
 							value = process,
@@ -99,13 +111,15 @@ M.docker_compose_ps = function(opts)
 		.new(opts, {
 			finder = finders.new_dynamic({
 				fn = function()
-					return M._make_docker_command({ "compose", "ps" })
+					return M._make_command({
+						"docker compose " .. "--project-directory=" .. vim.loop.cwd() .. "ps --format json 2>/dev/null",
+					})
 				end,
 
 				entry_maker = function(entry)
-					log.info("Got entry", entry)
+					log.debug("Got entry", entry)
 					local process = vim.json.decode(entry)
-					log.info("Got entry", process)
+					log.debug("Got entry", process)
 					if process then
 						return {
 							value = process,
@@ -166,7 +180,7 @@ M.docker_volumes = function(opts)
 
 				entry_maker = function(entry)
 					local volume = vim.json.decode(entry)
-					log.info("Calling entry maker", volume)
+					log.debug("Calling entry maker", volume)
 					if volume then
 						return {
 							value = volume,
